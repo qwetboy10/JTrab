@@ -14,7 +14,7 @@ public class Trab {
     private static boolean verbose = false;
     private static Interpreter interpreter;
     private static Mode mode;
-    private static String[] stdLib = {"Math.trab"};
+    private static String[] stdLib = {"Math.trab", "List.trab"};
 
     public static void main(String[] args) throws IOException {
         interpreter = new Interpreter();
@@ -60,9 +60,16 @@ public class Trab {
 
     private static void run(String program, boolean isRepl, String stin) {
         List<Token> tokens = Scanner.scan(program);
-        if (hadError) return;
+        if (hadError) {
+            System.out.println("Scanner Error");
+            return;
+        }
+
         List<Stmt> prog = new Parser(tokens).parse();
-        if (hadError) return;
+        if (hadError) {
+            System.out.println("Parse Error");
+            return;
+        }
         interpreter.run(prog, isRepl, stin);
     }
 

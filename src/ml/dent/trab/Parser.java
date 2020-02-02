@@ -372,6 +372,7 @@ public class Parser {
 
     private Expr list(Token start) {
         List<Expr> values = new LinkedList<>();
+        if(match(RIGHT_BRACE)) return new Expr.TrabList(values, start);
         do {
             values.add(expression());
         } while (match(COMMA));

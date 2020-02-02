@@ -2,6 +2,8 @@ package ml.dent.trab;
 
 import ml.dent.trab.Expr.*;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,7 +59,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                     case "add":
                         return new TrabCallable() {
 
-
                             @Override
                             public int arity() {
                                 return 2;
@@ -70,6 +71,50 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                                 Object add = arguments.get(1);
                                 list.add(add);
                                 return new TrabNull();
+                            }
+
+                            @Override
+                            public String toString() {
+                                return "<native fn>";
+                            }
+                        };
+                    case "set":
+                        return new TrabCallable() {
+
+                            @Override
+                            public int arity() {
+                                return 3;
+                            }
+
+                            @Override
+                            public Object call(Interpreter interpreter, Token callee, List<Object> arguments) {
+                                interpreter.checkListOperand(callee, arguments.get(0));
+                                interpreter.checkNumberOperand(callee, arguments.get(1));
+                                List list = (List) arguments.get(0);
+                                int index = (int) (double) arguments.get(1);
+                                Object element = arguments.get(2);
+                                list.set(index, element);
+                                return new TrabNull();
+                            }
+
+                            @Override
+                            public String toString() {
+                                return "<native fn>";
+                            }
+                        };
+                    case "length":
+                        return new TrabCallable() {
+
+                            @Override
+                            public int arity() {
+                                return 1;
+                            }
+
+                            @Override
+                            public Object call(Interpreter interpreter, Token callee, List<Object> arguments) {
+                                interpreter.checkListOperand(callee, arguments.get(0));
+                                List list = (List) arguments.get(0);
+                                return (Double) (double) list.size();
                             }
 
                             @Override
@@ -243,7 +288,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             trabClass = (TrabClassable) o;
         else throw new RuntimeError(expr.name, "Can only call '.' on class");
         Object temp = trabClass.getFunction(expr.name.lexeme);
-        if (temp == null) throw new RuntimeError(expr.name, "Method " + expr.name.lexeme + " does not exist");
+        if (temp == null) {
+            System.out.println(expr.toString());
+            throw new RuntimeError(expr.name, "Method " + expr.name.lexeme + " does not exist");
+        }
         return temp;
     }
 
@@ -352,8 +400,19 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                 environment.update(variable2.name.lexeme, (Double) o3 - 1);
                 return getVar(variable2.name);
             case QUESTION:
-                //TODO bash integration
-                return evaluate(expr.right);
+                Object command = evaluate(expr.right);
+                checkStringOperand(expr.operator, command);
+                String s = (String) command;
+                try {
+                    Process p = Runtime.getRuntime().exec(s);
+                    BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                    String output = "";
+                    while (in.ready()) output += in.readLine() + "\n";
+                    return output.trim();
+                } catch (Exception e) {
+
+                    return new TrabNull();
+                }
         }
         return null;
     }
